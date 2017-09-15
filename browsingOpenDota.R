@@ -4,6 +4,7 @@
 # require packages
 require(jsonlite)
 require(dplyr)
+require(ggplot2)
 
 # get account
 account <- fromJSON('https://api.opendota.com/api/players/453785711')
@@ -29,7 +30,7 @@ fullHeroes <- select(heroes, id, localized_name) %>%
 fullHeroes$last_played <- as.Date(as.POSIXct(fullHeroes$last_played, origin='1970-01-01'))
 
 # stack heroes data performance
-performance <- data.frame(matrix(nrow=0, ncol=15))
+performance <- data.frame(matrix(nrow=0, ncol=15), stringsAsFactors=FALSE)
 
 # get matches where each hero got played
 for(i in 1:nrow(fullHeroes)) {
@@ -64,11 +65,25 @@ for(i in 1:nrow(fullHeroes)) {
       percentiles <- c(playerData[2], playerData[4], playerData[6], playerData[8], playerData[10], playerData[12])
       meanPercentiles <- mean(percentiles)
 
-      gameParams <- c(fullHeroes[i, 'localized_name'], players[['win']][[position]], playerData, meanPercentiles)
-      names(performance) <- c('hero', 'win', 'gpm', 'gpmb', 'xpm', 'xpmb', 'kpm', 'kpmb', 'lhm', 'lhmb', 'hdm', 'hdmb', 'tdm', 'tdmb', 'bench')
+      gameParams <- list(fullHeroes[i, 'localized_name'], players[['win']][[position]], meanPercentiles,
+                         playerData[1], playerData[2], playerData[3], playerData[4],
+                         playerData[5], playerData[6], playerData[7], playerData[8],
+                         playerData[9], playerData[10], playerData[11], playerData[12])
       
       performance <- rbind(performance, gameParams)
+      names(performance) <- c('hero', 'win', 'bench', 'gpm', 'gpmb', 'xpm', 'xpmb', 'kpm', 'kpmb', 'lhm', 'lhmb', 'hdm', 'hdmb', 'tdm', 'tdmb')
+      performance$hero <- as.character(performance$hero)
+      
+      if(j %% 3 == 0) Sys.sleep(1)
+      
     }
+    
+    cat(paste0('Hero finished: ', fullHeroes[i, 'localized_name'], '\n'))
+    flush.console()
 }
 
 
+
+# boxplot tries
+ggplot(performance, aes(x=hero, y=bench, fill=as.factor(win))) + geom_boxplot() + 
+  scale_y_continuous(breaks=seq(0, 1, by=0.1), minor_breaks=seq(0,1,by=0.05))
