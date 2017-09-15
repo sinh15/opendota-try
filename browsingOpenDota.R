@@ -22,11 +22,14 @@ heroes <- fromJSON('https://api.opendota.com/api/heroes')
 heroesPlayed$hero_id <- as.numeric(heroesPlayed$hero_id)
 fullHeroes <- select(heroes, id, localized_name) %>% 
               left_join(heroesPlayed, by = c('id' = 'hero_id')) %>%
-              arrange(desc(games)) %>%
               mutate(winRatio = win/games) %>%
-              filter(games >= 3)
+              filter(games >= 3) %>%
+              arrange(desc(games))
 
 fullHeroes$last_played <- as.Date(as.POSIXct(fullHeroes$last_played, origin='1970-01-01'))
+
+# stack heroes data performance
+performance <- data.frame(matrix(nrow=0, ncol=15))
 
 # get matches where each hero got played
 for(i in 1:nrow(fullHeroes)) {
@@ -59,8 +62,12 @@ for(i in 1:nrow(fullHeroes)) {
       
       # overall percentile
       percentiles <- c(playerData[2], playerData[4], playerData[6], playerData[8], playerData[10], playerData[12])
-      overallPercentile <- mean(percentiles)
-      summary(percentiles)
+      meanPercentiles <- mean(percentiles)
+
+      gameParams <- c(fullHeroes[i, 'localized_name'], players[['win']][[position]], playerData, meanPercentiles)
+      names(performance) <- c('hero', 'win', 'gpm', 'gpmb', 'xpm', 'xpmb', 'kpm', 'kpmb', 'lhm', 'lhmb', 'hdm', 'hdmb', 'tdm', 'tdmb', 'bench')
+      
+      performance <- rbind(performance, gameParams)
     }
 }
 
